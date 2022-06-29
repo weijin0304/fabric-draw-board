@@ -9,23 +9,39 @@ import 'fabric/src/mixins/eraser_brush.mixin.js';
 let canvasAction = 'pencil'; // 'pencil'|'line'|'rect'|'circle'|'Eraser'|'select'
 let mouseFrom = {};
 let mouseTo = {};
+let canvasShapes = [];
 function App() {
     const canvasEl = useRef(null);
     const canvasBox = useRef(null);
     let canvas = useRef(null);
 
+	const canvasEl2 = useRef(null);
+    const canvasBox2 = useRef(null);
+    let canvas2 = useRef(null);
+
     useEffect(() => {
         const handleResize = () => {
             if (canvas.current && canvasBox.current) {
-                // canvas.current.setDimensions({
-                //     width: (960 * (16 /9)),
-                // 	height: (960)
-                // },{backstoreOnly: true});
+                canvas.current.setDimensions({
+                    width: (960 * (16 /9)),
+                	height: (960)
+                },{backstoreOnly: true});
 				canvas.current.setDimensions({
 					width: canvasBox.current.clientWidth + "px",
 					height: canvasBox.current.clientHeight + "px"
 				}, {cssOnly: true})
                 canvas.current.renderAll();
+            }
+			if (canvas2.current && canvasBox2.current) {
+				canvas2.current.setDimensions({
+                    width: (960 * (16 /9)),
+                	height: (960)
+                },{backstoreOnly: true});
+				canvas2.current.setDimensions({
+					width: canvasBox2.current.clientWidth + "px",
+					height: canvasBox2.current.clientHeight + "px"
+				}, {cssOnly: true})
+                canvas2.current.renderAll();
             }
         };
         window.addEventListener('resize', handleResize);
@@ -177,30 +193,14 @@ function App() {
                     canvas.current.remove(textObject);
                 }
                 canvas.current.renderAll();
+
+				canvasShapes.push(textObject);
+				renderCanvas2();
                 textObject = null;
 			}
 		}
 
-        const options = {
-            enableRetinaScaling: true, // 当为 true 时，画布按 devicePixelRatio 缩放，以便在视网膜屏幕上更好地呈现
-            // enablePointerEvents: true, // 启用该选项时，将使用 PointerEvent 而不是 MouseEvent。
-            isDrawingMode: true, // 如果为真，画布上的鼠标事件（mousedown/mousemove/mouseup）会导致自由绘图。在 mousedown 之后，mousemove 创建一个形状，然后 mouseup 完成它并将 `fabric.Path` 的实例添加到画布上。
-            selection: false, // 指示是否应启用组选择
-            selectable: false, // 控件不能被选择，不会被操作
-            skipTargetFind: true, // 整个画板元素不能被选中
-        };
-        canvas.current = new fabric.Canvas(canvasEl.current, options);
-
-        // 设置自由绘画模式画笔类型为 铅笔类型
-        canvas.current.freeDrawingBrush = new fabric.PencilBrush(canvas.current);
-        // 设置自由绘画模式 画笔颜色与画笔线条大小
-        canvas.current.freeDrawingBrush.color = 'red';
-        canvas.current.freeDrawingBrush.width = 4;
-
-        canvas.current.setDimensions({
-            width: canvasBox.current.clientWidth,
-            height: canvasBox.current.clientHeight,
-        });
+        initCanvas(canvasEl, canvas, canvasBox);
 
         const onMouseDown = (e) => {
             if (!['line', 'rect', 'circle', 'text'].includes(canvasAction)) {
@@ -256,15 +256,28 @@ function App() {
         const onMouseUp = () => {
             mouseFrom = {};
             mouseTo = {};
+			console.log('getActiveObject():', canvas.current.getActiveObject())
+			if (drawingObject) {
+				console.log('drawingObject:', drawingObject.toObject())
+				let data
+				fabric.util.enlivenObjects([drawingObject.toObject()], (objs) => {
+					data = objs[0];
+				});
+				canvasShapes.push(data);
+			}
+			renderCanvas2();
             drawingObject = null;
+        };
+		const onPathCreate = (data) => {
+        	console.log('path:created:', data)
+			canvasShapes.push(data.path);
+			renderCanvas2();
         };
 
         canvas.current.on('mouse:down', onMouseDown);
         canvas.current.on('mouse:move', onMouseMove);
         canvas.current.on('mouse:up', onMouseUp);
-        // canvas.current.on('path:created', (...data) => {
-        // 	console.log('path:created:', data)
-        // });
+        canvas.current.on('path:created', onPathCreate);
         // canvas.current.on('object:modified', (...data) => {
         // 	console.log('object:modified:', data)
         // });
@@ -277,11 +290,50 @@ function App() {
 
         return () => {
             canvas.current.dispose();
+            canvas.current.off('path:created', onPathCreate);
             canvas.current.off('mouse:down', onMouseDown);
             canvas.current.off('mouse:move', onMouseMove);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             canvas.current.off('mouse:up', onMouseUp);
         };
     }, []);
+
+	useEffect(() => {
+		initCanvas(canvasEl2, canvas2, canvasBox2);
+	},[]);
+
+	const renderCanvas2 = (data) => {
+		canvas2.current.clear();
+		canvas2.current.add(...canvasShapes);
+		// console.log('canvas2.current:', canvas2.current.getObjects())
+	};
+
+	const initCanvas = (canvasEle, canvasManager, canvasBoxEle) => {
+		const options = {
+            enableRetinaScaling: true, // 当为 true 时，画布按 devicePixelRatio 缩放，以便在视网膜屏幕上更好地呈现
+            // enablePointerEvents: true, // 启用该选项时，将使用 PointerEvent 而不是 MouseEvent。
+            isDrawingMode: true, // 如果为真，画布上的鼠标事件（mousedown/mousemove/mouseup）会导致自由绘图。在 mousedown 之后，mousemove 创建一个形状，然后 mouseup 完成它并将 `fabric.Path` 的实例添加到画布上。
+            selection: false, // 指示是否应启用组选择
+            selectable: false, // 控件不能被选择，不会被操作
+            skipTargetFind: true, // 整个画板元素不能被选中
+        };
+        canvasManager.current = new fabric.Canvas(canvasEle.current, options);
+
+        // 设置自由绘画模式画笔类型为 铅笔类型
+        canvasManager.current.freeDrawingBrush = new fabric.PencilBrush(canvasManager.current);
+        // 设置自由绘画模式 画笔颜色与画笔线条大小
+        canvasManager.current.freeDrawingBrush.color = 'red';
+        canvasManager.current.freeDrawingBrush.width = 4;
+
+		canvasManager.current.setDimensions({
+			width: (960 * (16 /9)),
+			height: (960)
+		},{backstoreOnly: true});
+		canvasManager.current.setDimensions({
+			width: canvasBoxEle.current.clientWidth + "px",
+			height: canvasBoxEle.current.clientHeight + "px"
+		}, {cssOnly: true})
+	};
 
     const setSelectState = ({ isSelect, isDrawingMode }) => {
         canvas.current.isDrawingMode = isDrawingMode;
@@ -374,6 +426,11 @@ function App() {
 			<div id="canvasBox" className="canvas-contianer" ref={canvasBox}>
 				<div className="canvas-box">
 					<canvas id="testCanvas" ref={canvasEl} />
+				</div>
+			</div>
+			<div id="canvasBox2" className="canvas-contianer" ref={canvasBox2}>
+				<div className="canvas-box">
+					<canvas id="testCanvas2" ref={canvasEl2} />
 				</div>
 			</div>
         </div>
