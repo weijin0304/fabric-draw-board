@@ -210,7 +210,7 @@ function App() {
             mouseFrom.x = pointer.x;
             mouseFrom.y = pointer.y;
 
-			console.log(222222222, e, pointer);
+			console.log('onMouseDown', e, pointer);
 			
             if (canvasAction === 'text') {
 				if (e.target && e.target.type === 'textbox') {
@@ -256,7 +256,6 @@ function App() {
         const onMouseUp = () => {
             mouseFrom = {};
             mouseTo = {};
-			console.log('getActiveObject():', canvas.current.getActiveObject())
 			if (drawingObject) {
 				console.log('drawingObject:', drawingObject.toObject())
 				let data
