@@ -4,6 +4,7 @@ import { Button } from 'antd';
 import { fabric } from 'fabric';
 // 启用橡皮擦功能需要额外引入 eraser_brush_mixin.js
 import 'fabric/src/mixins/eraser_brush.mixin.js';
+import {v4 as uuidv4} from 'uuid';
 // import { ResizeObserver } from '@juggle/resize-observer';
 
 let canvasAction = 'pencil'; // 'pencil'|'line'|'rect'|'circle'|'Eraser'|'select'
@@ -142,6 +143,7 @@ function App() {
         const startDrawingObject = (canvasObject) => {
             // 禁止用户选择当前正在绘制的图形
             canvasObject.selectable = false;
+			canvasObject.id = uuidv4();
             // 如果当前图形已绘制，清除上一次绘制的图形
             if (drawingObject) {
                 canvas.current.remove(drawingObject);
@@ -173,6 +175,7 @@ function App() {
 					// fontStyle: 'oblique',
 					// textBackgroundColor: '#ccc',
                 });
+				textObject.id = uuidv4();
                 canvas.current.add(textObject);
                 // 文本打开编辑模式
 				canvas.current.setActiveObject(textObject)
@@ -184,6 +187,7 @@ function App() {
             }
         };
 
+		// 结束绘制文本
 		const endDrawText = () => {
 			if (textObject) {
 				// 将当前文本对象退出编辑模式
@@ -253,39 +257,78 @@ function App() {
                     break;
             }
         };
-        const onMouseUp = () => {
+        const onMouseUp = (e) => {
             mouseFrom = {};
             mouseTo = {};
+			// console.log('onMouseUp(): e:', e)
+			// console.log('getObjects():', canvas.current.getObjects())
 			if (drawingObject) {
-				console.log('drawingObject:', drawingObject.toObject())
+				// console.log('drawingObject:', drawingObject)
 				let data
 				fabric.util.enlivenObjects([drawingObject.toObject()], (objs) => {
 					data = objs[0];
 				});
+				data.id = drawingObject.id;
 				canvasShapes.push(data);
 			}
 			renderCanvas2();
             drawingObject = null;
         };
-		const onPathCreate = (data) => {
-        	console.log('path:created:', data)
-			canvasShapes.push(data.path);
+		const onPathCreate = (event) => {
+        	// console.log('path:created:', event.path)
+			let data
+			fabric.util.enlivenObjects([event.path], (objs) => {
+				data = objs[0];
+			});
+			data.id = uuidv4();
+			event.path.id = data.id;
+			canvasShapes.push(data);
 			renderCanvas2();
         };
+
+		// let transform = {
+		// 	oldData: {},
+		// 	newData: {
+		// 		angle: 0,
+		// 		scaleX: 1,
+		// 		scaleY: 1,
+		// 		left: 0,
+		// 		top: 0,
+		// 	},
+		// };
 
         canvas.current.on('mouse:down', onMouseDown);
         canvas.current.on('mouse:move', onMouseMove);
         canvas.current.on('mouse:up', onMouseUp);
         canvas.current.on('path:created', onPathCreate);
-        // canvas.current.on('object:modified', (...data) => {
-        // 	console.log('object:modified:', data)
-        // });
+        canvas.current.on('object:modified', (data) => {
+        	// console.log('object:modified:', data, data.target.calcTransformMatrix())
+			if (data.target._objects && data.target._objects.length) {
+				data.target._objects.forEach((object) => {
+					updateModifie(object);
+				});
+				return;
+			}
+			updateModifie(data.target);
+        });
+		canvas.current.on('before:transform', (data) => {
+        	// console.log('before:transform:', data)
+        });
         // canvas.current.on('before:render', (...data) => {
         // 	console.log('before:render:', data)
         // });
         // canvas.current.on('after:render', (...data) => {
         // 	console.log('after:render:', data)
         // });
+		canvas.current.on('event:dragover', (...data) => {
+        	console.log('event:dragover:', data)
+        });
+		canvas.current.on('event:dragenter', (...data) => {
+        	console.log('event:dragenter:', data)
+        });
+		canvas.current.on('event:dragleave', (...data) => {
+        	console.log('event:dragleave:', data)
+        });
 
         return () => {
             canvas.current.dispose();
@@ -305,6 +348,17 @@ function App() {
 		canvas2.current.clear();
 		canvas2.current.add(...canvasShapes);
 		// console.log('canvas2.current:', canvas2.current.getObjects())
+	};
+
+	const updateModifie = (changeShape) => {
+		const curShape = canvasShapes.find((shape) => shape.id === changeShape.id);
+		console.log('updateModifie:', canvasShapes, curShape)
+		if (curShape) {
+			fabric.util.applyTransformToObject(curShape, changeShape.calcTransformMatrix());
+			// curShape.setOptions('left', data.target.left);
+			// curShape.setOptions('top', data.target.top);
+			canvas2.current.renderAll();
+		}
 	};
 
 	const initCanvas = (canvasEle, canvasManager, canvasBoxEle) => {
@@ -354,6 +408,7 @@ function App() {
         // canvas.current.freeDrawingBrush = new fabric.PatternBrush(canvas.current);
         // canvas.current.freeDrawingBrush = new fabric.SprayBrush(canvas.current);
         // 设置自由绘画模式 画笔颜色与画笔线条大小
+		console.log('freeDrawingBrush:', canvas.current.freeDrawingBrush)
         canvas.current.freeDrawingBrush.color = 'red';
         canvas.current.freeDrawingBrush.width = 4;
     };
