@@ -275,6 +275,7 @@ function App() {
             drawingObject = null;
         };
 		const onPathCreate = (event) => {
+			if(canvasAction === 'eraser'){ return; }
         	// console.log('path:created:', event.path)
 			let data
 			fabric.util.enlivenObjects([event.path], (objs) => {
@@ -297,11 +298,7 @@ function App() {
 		// 	},
 		// };
 
-        canvas.current.on('mouse:down', onMouseDown);
-        canvas.current.on('mouse:move', onMouseMove);
-        canvas.current.on('mouse:up', onMouseUp);
-        canvas.current.on('path:created', onPathCreate);
-        canvas.current.on('object:modified', (data) => {
+		const onObjectModified = (data) => {
         	// console.log('object:modified:', data, data.target.calcTransformMatrix())
 			if (data.target._objects && data.target._objects.length) {
 				data.target._objects.forEach((object) => {
@@ -310,10 +307,39 @@ function App() {
 				return;
 			}
 			updateModifie(data.target);
-        });
+        };
+
+		const onErasingEnd = ({ path, targets }) => {
+			// console.log('onErasingEnd,', 'path:', path, 'targets:', targets);
+			let data
+			fabric.util.enlivenObjects([path], (objs) => {
+				data = objs[0];
+			});
+			const eraserBrush = new fabric.EraserBrush(canvas2.current);
+            // eraserBrush.applyEraserToCanvas(data);
+			const targetsId = targets.map((item) => item.id);
+			canvasShapes.forEach((shape) => {
+				if (targetsId.includes(shape.id)) {
+					eraserBrush._addPathToObjectEraser(shape, data);
+				}
+			});
+            // this.canvas.forEachObject(function (obj) {
+            //     if (obj.erasable && obj.intersectsWithObject(path, true)) {
+            //         eraserBrush._addPathToObjectEraser(obj, path);
+            //         objects[obj.id] = obj.toObject()
+            //     }
+            // });
+		}
+
+        canvas.current.on('mouse:down', onMouseDown);
+        canvas.current.on('mouse:move', onMouseMove);
+        canvas.current.on('mouse:up', onMouseUp);
+        canvas.current.on('path:created', onPathCreate);
+        canvas.current.on('object:modified', onObjectModified);
 		canvas.current.on('before:transform', (data) => {
         	// console.log('before:transform:', data)
         });
+		canvas.current.on('erasing:end', onErasingEnd);
         // canvas.current.on('before:render', (...data) => {
         // 	console.log('before:render:', data)
         // });
@@ -335,8 +361,10 @@ function App() {
             canvas.current.off('path:created', onPathCreate);
             canvas.current.off('mouse:down', onMouseDown);
             canvas.current.off('mouse:move', onMouseMove);
-            // eslint-disable-next-line react-hooks/exhaustive-deps
             canvas.current.off('mouse:up', onMouseUp);
+            canvas.current.off('object:modified', onObjectModified);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            canvas.current.off('erasing:end', onErasingEnd);
         };
     }, []);
 
@@ -350,14 +378,20 @@ function App() {
 		// console.log('canvas2.current:', canvas2.current.getObjects())
 	};
 
-	const updateModifie = (changeShape) => {
-		const curShape = canvasShapes.find((shape) => shape.id === changeShape.id);
-		console.log('updateModifie:', canvasShapes, curShape)
-		if (curShape) {
-			fabric.util.applyTransformToObject(curShape, changeShape.calcTransformMatrix());
-			// curShape.setOptions('left', data.target.left);
-			// curShape.setOptions('top', data.target.top);
-			canvas2.current.renderAll();
+	const updateModifie = (remoteChangeShape) => {
+		const changeShape = canvasShapes.find((shape) => shape.id === remoteChangeShape.id);
+		// console.log('updateModifie:', canvasShapes, changeShape)
+		if (changeShape) {
+			// 设置矩阵的变换方法一：
+			const opt = fabric.util.qrDecompose(remoteChangeShape.calcTransformMatrix());
+			changeShape.setPositionByOrigin(
+				{ x: opt.translateX, y: opt.translateY },
+				'center',
+				'center'
+			);
+			changeShape.set(opt);
+			// 设置矩阵的变换方法二：
+			// fabric.util.applyTransformToObject(changeShape, remoteChangeShape.calcTransformMatrix());
 		}
 	};
 
@@ -400,6 +434,7 @@ function App() {
     };
 
     const onClickPencil = () => {
+		// 企业项目应该自己创建 path 实现铅笔，容易扩展
         canvasAction = 'pencil';
         setSelectState({ isSelect: false, isDrawingMode: true });
         // 设置自由绘画模式画笔类型为 铅笔类型
@@ -411,6 +446,7 @@ function App() {
 		console.log('freeDrawingBrush:', canvas.current.freeDrawingBrush)
         canvas.current.freeDrawingBrush.color = 'red';
         canvas.current.freeDrawingBrush.width = 4;
+        canvas.current.freeDrawingBrush.toolName = 'pencil';
     };
 
     const onClickSelect = () => {
@@ -427,6 +463,7 @@ function App() {
         canvas.current.freeDrawingBrush = new fabric.EraserBrush(canvas.current);
         // 设置橡皮擦大小
         canvas.current.freeDrawingBrush.width = 10;
+		canvas.current.freeDrawingBrush.toolName = 'pencil';
     };
 
     const onClickLine = () => {
