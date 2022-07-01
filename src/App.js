@@ -446,7 +446,6 @@ function App() {
 		console.log('freeDrawingBrush:', canvas.current.freeDrawingBrush)
         canvas.current.freeDrawingBrush.color = 'red';
         canvas.current.freeDrawingBrush.width = 4;
-        canvas.current.freeDrawingBrush.toolName = 'pencil';
     };
 
     const onClickSelect = () => {
@@ -463,7 +462,6 @@ function App() {
         canvas.current.freeDrawingBrush = new fabric.EraserBrush(canvas.current);
         // 设置橡皮擦大小
         canvas.current.freeDrawingBrush.width = 10;
-		canvas.current.freeDrawingBrush.toolName = 'pencil';
     };
 
     const onClickLine = () => {
