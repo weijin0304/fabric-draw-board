@@ -287,17 +287,6 @@ function App() {
 			renderCanvas2();
         };
 
-		// let transform = {
-		// 	oldData: {},
-		// 	newData: {
-		// 		angle: 0,
-		// 		scaleX: 1,
-		// 		scaleY: 1,
-		// 		left: 0,
-		// 		top: 0,
-		// 	},
-		// };
-
 		const onObjectModified = (data) => {
         	// console.log('object:modified:', data, data.target.calcTransformMatrix())
 			if (data.target._objects && data.target._objects.length) {
@@ -323,12 +312,6 @@ function App() {
 					eraserBrush._addPathToObjectEraser(shape, data);
 				}
 			});
-            // this.canvas.forEachObject(function (obj) {
-            //     if (obj.erasable && obj.intersectsWithObject(path, true)) {
-            //         eraserBrush._addPathToObjectEraser(obj, path);
-            //         objects[obj.id] = obj.toObject()
-            //     }
-            // });
 		}
 
         canvas.current.on('mouse:down', onMouseDown);
