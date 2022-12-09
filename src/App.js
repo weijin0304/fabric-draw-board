@@ -1,6 +1,6 @@
 import './App.css';
 import { useEffect, useRef } from 'react';
-import { Button } from 'antd';
+import { Button, Upload } from 'antd';
 import { fabric } from 'fabric';
 // 启用橡皮擦功能需要额外引入 eraser_brush_mixin.js
 import 'fabric/src/mixins/eraser_brush.mixin.js';
@@ -286,7 +286,6 @@ function App() {
 			canvasShapes.push(data);
 			renderCanvas2();
         };
-
 		const onObjectModified = (data) => {
         	// console.log('object:modified:', data, data.target.calcTransformMatrix())
 			if (data.target._objects && data.target._objects.length) {
@@ -297,7 +296,6 @@ function App() {
 			}
 			updateModifie(data.target);
         };
-
 		const onErasingEnd = ({ path, targets }) => {
 			// console.log('onErasingEnd,', 'path:', path, 'targets:', targets);
 			let data
@@ -470,8 +468,35 @@ function App() {
         setSelectState({ isSelect: false, isDrawingMode: false });
     };
 
+    const onClickAddImg = () => {
+        const input = document.createElement('input');
+        input.type = "file";
+        input.accept = "image/png, image/jpeg, image/gif, image/jpg";
+        const onChangeInput = async () => {
+            const file = input.files[0];
+            const src = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+            });
+
+            fabric.Image.fromURL(src, oImg => {
+                oImg.scale(0.5) // 缩放
+                console.error(22222, oImg)
+                canvas.current.add(oImg) // 将图片加入到画布
+            },{
+                left: 80,
+                top: 80,
+                crossOrigin: 'anonymous',
+                erasable: false,
+            })
+        }
+        input.addEventListener('change', onChangeInput);
+        input.click();
+    };
+
     return (
-        <div className="App">
+        <div id='appBox' className="App">
             <div className="control">
                 <Button className="control-btn" onClick={onClickPencil}>
                     铅笔
@@ -493,6 +518,9 @@ function App() {
                 </Button>
                 <Button className="control-btn" onClick={onClickEraser}>
                     橡皮
+                </Button>
+                <Button className="control-btn" onClick={onClickAddImg}>
+                    插入图片
                 </Button>
             </div>
 			<div id="canvasBox" className="canvas-contianer" ref={canvasBox}>
