@@ -387,6 +387,16 @@ function App() {
         };
         canvasManager.current = new fabric.Canvas(canvasEle.current, options);
 
+        fabric.Object.prototype.set({
+            borderColor: '#3997F8',
+            cornerColor: '#fff',
+            cornerStrokeColor: '#3997F8', // 控制点边框色
+            cornerStyle: 'circle',
+            transparentCorners: false,
+            // hasBorders: false,
+            // hasControls: false,
+        });
+
         // 设置自由绘画模式画笔类型为 铅笔类型
         canvasManager.current.freeDrawingBrush = new fabric.PencilBrush(canvasManager.current);
         // 设置自由绘画模式 画笔颜色与画笔线条大小
