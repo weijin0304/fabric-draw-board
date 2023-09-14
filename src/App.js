@@ -1,9 +1,10 @@
 import './App.css';
 import { useEffect, useRef } from 'react';
 import { Button, Upload } from 'antd';
-import { fabric } from 'fabric';
+// import { fabric } from 'fabric';
+import * as fabric from 'fabric'; // v6
 // 启用橡皮擦功能需要额外引入 eraser_brush_mixin.js
-import 'fabric/src/mixins/eraser_brush.mixin.js';
+// import './eraser_brush.mixin.js';
 import {v4 as uuidv4} from 'uuid';
 // import { ResizeObserver } from '@juggle/resize-observer';
 
@@ -276,7 +277,7 @@ function App() {
         };
 		const onPathCreate = (event) => {
 			if(canvasAction === 'eraser'){ return; }
-        	// console.log('path:created:', event.path)
+        	console.log('path:created:', event.path)
 			let data
 			fabric.util.enlivenObjects([event.path], (objs) => {
 				data = objs[0];
@@ -298,18 +299,18 @@ function App() {
         };
 		const onErasingEnd = ({ path, targets }) => {
 			// console.log('onErasingEnd,', 'path:', path, 'targets:', targets);
-			let data
-			fabric.util.enlivenObjects([path], (objs) => {
-				data = objs[0];
-			});
-			const eraserBrush = new fabric.EraserBrush(canvas2.current);
-            // eraserBrush.applyEraserToCanvas(data);
-			const targetsId = targets.map((item) => item.id);
-			canvasShapes.forEach((shape) => {
-				if (targetsId.includes(shape.id)) {
-					eraserBrush._addPathToObjectEraser(shape, data);
-				}
-			});
+			// let data
+			// fabric.util.enlivenObjects([path], (objs) => {
+			// 	data = objs[0];
+			// });
+			// const eraserBrush = new fabric.EraserBrush(canvas2.current);
+            // // eraserBrush.applyEraserToCanvas(data);
+			// const targetsId = targets.map((item) => item.id);
+			// canvasShapes.forEach((shape) => {
+			// 	if (targetsId.includes(shape.id)) {
+			// 		eraserBrush._addPathToObjectEraser(shape, data);
+			// 	}
+			// });
 		}
 
         canvas.current.on('mouse:down', onMouseDown);
@@ -351,6 +352,9 @@ function App() {
 
 	useEffect(() => {
 		initCanvas(canvasEl2, canvas2, canvasBox2);
+        return () => {
+            canvas2.current.dispose();
+        };
 	},[]);
 
 	const renderCanvas2 = (data) => {
@@ -445,14 +449,14 @@ function App() {
     };
 
     const onClickEraser = () => {
-        canvasAction = 'eraser';
-        // 启用自由绘画模式
-        setSelectState({ isSelect: false, isDrawingMode: true });
-        // 自由绘画模式 画笔类型设置为 橡皮擦对象
-        console.log('fabric:', fabric);
-        canvas.current.freeDrawingBrush = new fabric.EraserBrush(canvas.current);
-        // 设置橡皮擦大小
-        canvas.current.freeDrawingBrush.width = 10;
+        // canvasAction = 'eraser';
+        // // 启用自由绘画模式
+        // setSelectState({ isSelect: false, isDrawingMode: true });
+        // // 自由绘画模式 画笔类型设置为 橡皮擦对象
+        // console.log('fabric:', fabric);
+        // canvas.current.freeDrawingBrush = new fabric.EraserBrush(canvas.current);
+        // // 设置橡皮擦大小
+        // canvas.current.freeDrawingBrush.width = 10;
     };
 
     const onClickLine = () => {
