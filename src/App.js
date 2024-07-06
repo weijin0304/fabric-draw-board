@@ -7,7 +7,7 @@ import * as fabric from 'fabric'; // v6
 // import './eraser_brush.mixin.js';
 import {v4 as uuidv4} from 'uuid';
 // import { ResizeObserver } from '@juggle/resize-observer';
-
+console.error('fabric:', fabric)
 let canvasAction = 'pencil'; // 'pencil'|'line'|'rect'|'circle'|'Eraser'|'select'
 let mouseFrom = {};
 let mouseTo = {};
@@ -207,7 +207,31 @@ function App() {
 
         initCanvas(canvasEl, canvas, canvasBox);
 
+        const testLine = () => {
+            const generateRandomColor = () => {
+                const color = Math.floor(Math.random() * 16777216).toString(16);
+                return '#' + ('000000' + color).slice(-6);
+            };
+            for (let index = 0; index < 1; index++) {
+                for (let i = 0; i < 1000; i++) {
+                    const x1 = Math.random() * canvas.current.width;
+                    const y1 = Math.random() * canvas.current.height + (index * 960);
+                    const x2 = Math.random() * canvas.current.width;
+                    const y2 = Math.random() * canvas.current.height + (index * 960);
+                    const shape = new fabric.Line([x1, y1, x2, y2], {
+                        stroke: generateRandomColor(),
+                        strokeWidth: 1,
+                        selectable: false,
+                    });
+                    canvas.current.add(shape);
+                    // this.onMouseUp();
+                }
+            }
+        }
+
         const onMouseDown = (e) => {
+            // testLine();
+
             if (!['line', 'rect', 'circle', 'text'].includes(canvasAction)) {
                 return;
             }
@@ -262,30 +286,26 @@ function App() {
             mouseFrom = {};
             mouseTo = {};
 			// console.log('onMouseUp(): e:', e)
-			// console.log('getObjects():', canvas.current.getObjects())
 			if (drawingObject) {
-				// console.log('drawingObject:', drawingObject)
-				let data
-				fabric.util.enlivenObjects([drawingObject.toObject()], (objs) => {
-					data = objs[0];
-				});
-				data.id = drawingObject.id;
-				canvasShapes.push(data);
+                fabric.util.enlivenObjects([drawingObject.toObject()]).then((objs)=>{
+                    let data = objs[0];
+                    data.id = drawingObject.id;
+				    canvasShapes.push(data);
+                    drawingObject = null;
+                });
 			}
 			renderCanvas2();
-            drawingObject = null;
         };
 		const onPathCreate = (event) => {
 			if(canvasAction === 'eraser'){ return; }
         	console.log('path:created:', event.path)
-			let data
-			fabric.util.enlivenObjects([event.path], (objs) => {
-				data = objs[0];
-			});
-			data.id = uuidv4();
-			event.path.id = data.id;
-			canvasShapes.push(data);
-			renderCanvas2();
+            fabric.util.enlivenObjects([event.path]).then((objs) => {
+                let data = objs[0];
+                data.id = uuidv4();
+                event.path.id = data.id;
+                canvasShapes.push(data);
+                renderCanvas2();
+            });
         };
 		const onObjectModified = (data) => {
         	// console.log('object:modified:', data, data.target.calcTransformMatrix())
@@ -323,10 +343,12 @@ function App() {
         });
 		canvas.current.on('erasing:end', onErasingEnd);
         // canvas.current.on('before:render', (...data) => {
-        // 	console.log('before:render:', data)
+        // 	console.time('render:render')
+        // 	console.log('before:render')
         // });
         // canvas.current.on('after:render', (...data) => {
-        // 	console.log('after:render:', data)
+        // 	console.timeEnd('render:render')
+        // 	console.log('after:render')
         // });
 		canvas.current.on('event:dragover', (...data) => {
         	console.log('event:dragover:', data)
@@ -358,6 +380,7 @@ function App() {
 	},[]);
 
 	const renderCanvas2 = (data) => {
+        return;
 		canvas2.current.clear();
 		canvas2.current.add(...canvasShapes);
 		// console.log('canvas2.current:', canvas2.current.getObjects())
@@ -453,7 +476,7 @@ function App() {
         // // 启用自由绘画模式
         // setSelectState({ isSelect: false, isDrawingMode: true });
         // // 自由绘画模式 画笔类型设置为 橡皮擦对象
-        // console.log('fabric:', fabric);
+        console.log('fabric:', fabric);
         // canvas.current.freeDrawingBrush = new fabric.EraserBrush(canvas.current);
         // // 设置橡皮擦大小
         // canvas.current.freeDrawingBrush.width = 10;
@@ -494,7 +517,7 @@ function App() {
                 reader.onload = () => resolve(reader.result);
             });
 
-            fabric.Image.fromURL(src, oImg => {
+            fabric.FabricImage.fromURL(src, oImg => {
                 oImg.scale(0.5) // 缩放
                 console.error(22222, oImg)
                 canvas.current.add(oImg) // 将图片加入到画布
